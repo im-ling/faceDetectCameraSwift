@@ -15,15 +15,19 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
     var captureDevice : AVCaptureDevice?
     var previewLayer : AVCaptureVideoPreviewLayer?
     
-    var smallPreView:UIImageView = UIImageView.init(frame: CGRect.init(x: 0, y: 0, width: 144, height: 192))
-    
-    
     var overlayView:UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.clear
         return view
     }()
     
+//    左上角小的预览图
+//    var smallPicture:UIImageView = {
+//        let imageView = UIImageView.init(frame: CGRect.init(x: 0, y: 0, width: 144, height: 192))
+//        return imageView
+//    }()
+    
+
     var isStart = false
     
     override func viewDidLoad() {
@@ -37,11 +41,12 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
         print("setupUI")
         self.view.backgroundColor = UIColor.blue
         
-        captureSession.sessionPreset = AVCaptureSession.Preset.high
-        let devices = AVCaptureDevice.devices()
+        captureSession.sessionPreset = AVCaptureSessionPresetHigh
+        
+        let devices:[AVCaptureDevice] = AVCaptureDevice.devices()! as! [AVCaptureDevice]
         for device in devices {
-            if (device.hasMediaType(AVMediaType.video)){
-                if (device.position == AVCaptureDevice.Position.front){
+            if (device.hasMediaType(AVMediaTypeVideo)){
+                if (device.position == AVCaptureDevicePosition.front){
                     captureDevice = device
                     if captureDevice != nil{
                         print("Capture Device found")
@@ -51,13 +56,12 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
             }
         }
 
-        Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(isStartTrue), userInfo: nil, repeats: false)
+        Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(isStartTrue), userInfo: nil, repeats: false)
         
         self.view.addSubview(overlayView)
         overlayView.frame = self.view.frame
 
-        self.view.addSubview(smallPreView)
-        smallPreView.backgroundColor = UIColor.clear;
+//        self.view.addSubview(smallPicture)
         
     }
 
@@ -80,7 +84,7 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
         
         
         previewLayer = AVCaptureVideoPreviewLayer.init(session: captureSession)
-        previewLayer?.videoGravity = .resizeAspect;
+        previewLayer?.videoGravity = AVLayerVideoGravityResizeAspect;
         previewLayer?.frame = self.view.bounds;
         self.view.layer.addSublayer(previewLayer!)
         
@@ -88,8 +92,8 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
         
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-//        print("captureOutput")
+    func captureOutput(_ output: AVCaptureOutput!, didOutputSampleBuffer sampleBuffer: CMSampleBuffer!, from connection: AVCaptureConnection!) {
+        //        print("captureOutput")
         if(self.isStart)
         {
             var resultImage = sampleBufferToImage(sampleBuffer: sampleBuffer)
@@ -107,8 +111,8 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
             let results = detecotr?.features(in: ciImage, options: [CIDetectorImageOrientation:NSNumber.init(value: 1)])
             
             DispatchQueue.main.async {
-//                print("put result image")
-//                self.smallPreView.image = resultImage
+                //                print("put result image")
+                //                self.smallPreView.image = resultImage
                 if self.overlayView.layer.sublayers != nil{
                     for item in self.overlayView.layer.sublayers!{
                         item.removeFromSuperlayer()
@@ -125,9 +129,9 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
                 facelayer.borderColor = UIColor.red.cgColor
                 facelayer.borderWidth = 2
                 
-
-//                smallLayer.frame = face.bounds
-//                smallLayer.frame = CGRect.init(x: face.bounds.origin.y, y: face.bounds.origin.x, width: face.bounds.size.width, height: face.bounds.size.height)
+                
+                //                smallLayer.frame = face.bounds
+                //                smallLayer.frame = CGRect.init(x: face.bounds.origin.y, y: face.bounds.origin.x, width: face.bounds.size.width, height: face.bounds.size.height)
                 
                 facelayer.frame = CGRect.init(x:face.bounds.origin.x * scale, y:topMargin + (resultImage.size.height - face.bounds.origin.y - face.bounds.size.height ) * scale, width: face.bounds.size.width * scale, height: face.bounds.size.height * scale)
                 
@@ -137,7 +141,7 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
                 mouthLayer.borderColor = UIColor.red.cgColor
                 mouthLayer.borderWidth = 2
                 mouthLayer.frame = CGRect.init(x:face.mouthPosition.x * scale - markWidth , y: topMargin + (resultImage.size.height - face.mouthPosition.y) * scale - markWidth, width: markWidth * 2, height: markWidth * 2)
-
+                
                 
                 DispatchQueue.main.async {
                     self.overlayView.layer.addSublayer(facelayer)
@@ -146,7 +150,6 @@ class AVCaptureVideoPicViewController: UIViewController ,AVCaptureVideoDataOutpu
             }
         }
     }
-    
     
     
     private func sampleBufferToImage(sampleBuffer: CMSampleBuffer!) -> UIImage {
